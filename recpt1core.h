@@ -29,8 +29,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "../typedef.h"
-#include "../IBonDriver2.h"
+#include "typedef.h"
+#include "IBonDriver2.h"
 //#include "pt1_ioctl.h"
 #include "config.h"
 #include "decoder.h"

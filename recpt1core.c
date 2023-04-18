@@ -3,8 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <dlfcn.h>
-#include "../typedef.h"
-#include "../IBonDriver2.h"
+#include "typedef.h"
+#include "IBonDriver2.h"
 #include "AribChannel.h"
 #include "recpt1core.h"
 #include "version.h"

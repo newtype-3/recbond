@@ -30,8 +30,8 @@
 #ifdef HAVE_LIBARIB25
 #include "decoder.h"
 #endif
-#include "../typedef.h"
-#include "../IBonDriver2.h"
+#include "typedef.h"
+#include "IBonDriver2.h"
 //#include "recpt1.h"
 #include "recpt1core.h"
 #include "mkpath.h"
