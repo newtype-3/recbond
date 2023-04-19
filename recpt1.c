@@ -454,7 +454,7 @@ reader_func(void *p)
 
 #ifdef HAVE_LIBARIB25
 			if(use_b25) {
-				code = b25_finish(dec, &sbuf, &dbuf);
+				code = b25_finish(dec, &dbuf);
 				if(code < 0)
 					fprintf(stderr, "b25_finish failed\n");
 				else
