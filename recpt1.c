@@ -325,13 +325,27 @@ reader_func(void *p)
 
 #ifdef HAVE_LIBARIB25
 		if(use_b25) {
-			code = b25_decode(dec, &sbuf, &dbuf);
-			if(code < 0) {
-				fprintf(stderr, "b25_decode failed (code=%d). fall back to encrypted recording.\n", code);
-				use_b25 = FALSE;
-			}
-			else
-				buf = dbuf;
+            int lp = 0;
+
+            while(1){
+	            code = b25_decode(dec, &sbuf, &dbuf);
+	            if(code < 0) {
+					fprintf(stderr, "b25_decode failed (code=%d).", code);
+	                if(lp++ < 5){
+						//decoder restart
+						fprintf(stderr, "\ndecoder restart! \n");
+						b25_shutdown(dec);
+						b25_startup(tdata->dopt);
+					}else{
+		                fprintf(stderr, " fall back to encrypted recording.\n");
+		                use_b25 = FALSE;
+		                break;
+		            }
+	            }else{
+	                buf = dbuf;
+		            break;
+		        }
+	        }
 		}
 #endif
 
