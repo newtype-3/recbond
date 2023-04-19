@@ -1,4 +1,3 @@
-/* -*- tab-width: 4; indent-tabs-mode: t -*- */
 /* tssplitter_lite.h  -- split TS stream program's header.
 
    Copyright 2009 querulous
@@ -16,6 +15,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+
 #ifndef _TS_SPLITTER_LITE_H_
 #define _TS_SPLITTER_LITE_H_
 
@@ -23,52 +23,51 @@
 #include <inttypes.h>
 #include <unistd.h>
 
-#define LENGTH_PACKET		(188)
-#define MAX_PID				(8192)
-#define MAX_SERVICES		(50)
-#define LENGTH_CRC_DATA		(176)
-#define false				(0)
-#define true				(1)
+#define LENGTH_PACKET       (188)
+#define MAX_PID             (8192)
+#define MAX_SERVICES        (50)
+#define LENGTH_CRC_DATA     (176)
+#define false               (0)
+#define true                (1)
 
-#define TSS_SUCCESS			(0)
-#define TSS_ERROR			(-1)
-#define TSS_NULL			(-2)
-#define LENGTH_PAT_HEADER	(12)
-#define C_CHAR_COMMA		','
-#define SECTION_CONTINUE	(1)
+#define TSS_SUCCESS         (0)
+#define TSS_ERROR           (-1)
+#define TSS_NULL            (-2)
+#define LENGTH_PAT_HEADER   (12)
+#define C_CHAR_COMMA        ','
+#define SECTION_CONTINUE    (1)
 
 typedef struct _pmt_version {
-  int pid;
-  int version;
-  int packet;
+	int pid;
+	int version;
+	int packet;
 } PMT_version;
 
 /**
  * splitter構造体
  */
 typedef struct _splitter {
-	unsigned char	pids[MAX_PID];
-	unsigned char	pmt_pids[MAX_PID];
-	unsigned char*	pat;
-	char**			sid_list;
-	unsigned char	pat_count;
+	unsigned char pids[MAX_PID];
+	unsigned char pmt_pids[MAX_PID];
+	unsigned char *pat;
+	char **sid_list;
+	unsigned char pat_count;
 	int pmt_retain;
 	int pmt_counter;
 	int avail_pmts[MAX_SERVICES];
 	PMT_version pmt_version[MAX_SERVICES];
 	int num_pmts;
-	uint16_t section_remain[MAX_PID];	// セクション残りバイト数
-	uint8_t packet_seq[MAX_PID];	// 巡回カウンタ
+	uint16_t section_remain[MAX_PID];  // セクション残りバイト数
+	uint8_t packet_seq[MAX_PID];       // 巡回カウンタ
 } Splitter;
 
-typedef struct _splitbuf_t
-{
-	u_char* buffer;
+typedef struct _splitbuf_t {
+	u_char *buffer;
 	int buffer_size;
 	int buffer_filled;
 } splitbuf_t;
 
-Splitter* split_startup(char *sid);
+Splitter *split_startup(char *sid);
 int split_select(Splitter *sp, ARIB_STD_B25_BUFFER *sbuf);
 void split_shutdown(Splitter *sp);
 int split_ts(Splitter *splitter, ARIB_STD_B25_BUFFER *sbuf, splitbuf_t *dbuf);
