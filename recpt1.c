@@ -724,7 +724,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "enable B25 emm processing\n");
 			break;
 		case 'r':
-			dopt.round = atoi(optarg);
+			dopt.round = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "set round %d\n", dopt.round);
 			break;
 #endif
@@ -735,7 +735,7 @@ main(int argc, char **argv)
 			break;
 		case 'H':
 			use_http = TRUE;
-			port_http = atoi(optarg);
+			port_http = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "creating a http daemon\n");
 			break;
 		case 'h':
@@ -760,7 +760,7 @@ main(int argc, char **argv)
 		/* following options require argument */
 #if 0
 		case 'n':
-			val = atoi(optarg);
+			val = (int)strtol(optarg, NULL, 10);
 			switch(val) {
 			case 11:
 				tdata.lnb = 1;
@@ -781,11 +781,11 @@ main(int argc, char **argv)
 			fprintf(stderr, "UDP destination address: %s\n", host_to);
 			break;
 		case 'p':
-			port_to = atoi(optarg);
+			port_to = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "UDP port: %d\n", port_to);
 			break;
 		case 'S':
-			tdata.dwSpace = atoi(optarg);
+			tdata.dwSpace = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "using Space: %i\n", tdata.dwSpace);
 			break;
 		case 'd':

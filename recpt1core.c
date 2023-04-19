@@ -305,7 +305,7 @@ parse_time(const char * rectimestr, int *recsec)
 		/* hour */
 		if((p2 = strchr(p1, 'H')) || (p2 = strchr(p1, 'h'))) {
 			*p2 = '\0';
-			*recsec += atoi(p1) * 3600;
+			*recsec += (int)strtol(p1, NULL, 10) * 3600;
 			p1 = p2 + 1;
 			while(*p1 && !isdigit(*p1))
 				p1++;
@@ -314,14 +314,14 @@ parse_time(const char * rectimestr, int *recsec)
 		/* minute */
 		if((p2 = strchr(p1, 'M')) || (p2 = strchr(p1, 'm'))) {
 			*p2 = '\0';
-			*recsec += atoi(p1) * 60;
+			*recsec += (int)strtol(p1, NULL, 10) * 60;
 			p1 = p2 + 1;
 			while(*p1 && !isdigit(*p1))
 				p1++;
 		}
 
 		/* second */
-		*recsec += atoi(p1);
+		*recsec += (int)strtol(p1, NULL, 10);
 		if( flag )
 			*recsec *= -1;
 

@@ -82,7 +82,7 @@ main(int argc, char **argv)
             break;
         /* following options require argument */
         case 'p':
-            key = (key_t)atoi(optarg);
+            key = (key_t)strtol(optarg, NULL, 10);
             fprintf(stderr, "Pid = %d\n", key);
             break;
         case 'c':

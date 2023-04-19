@@ -167,7 +167,7 @@ main(int argc, char **argv)
 #if 0
 		/* following options require argument */
 		case 'n':
-			val = atoi(optarg);
+			val = (int)strtol(optarg, NULL, 10);
 			switch(val) {
 			case 11:
 				tdata.lnb = 1;
