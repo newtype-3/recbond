@@ -915,12 +915,13 @@ main(int argc, char **argv)
 
 			peer_host = gethostbyaddr((char *)&peer_sin.sin_addr.s_addr,
 					sizeof(peer_sin.sin_addr), AF_INET);
+			char    *h_name;
 			if ( peer_host == NULL ){
-				fprintf(stderr, "gethostbyname failed\n");
-				return 1;
-			}
+				h_name = "NONAME";
+			}else
+				h_name = peer_host->h_name;
 
-			fprintf(stderr,"connect from: %s [%s] port %d\n", peer_host->h_name, inet_ntoa(peer_sin.sin_addr), ntohs(peer_sin.sin_port));
+			fprintf(stderr,"connect from: %s [%s] port %d\n", h_name, inet_ntoa(peer_sin.sin_addr), ntohs(peer_sin.sin_port));
 
 			char buf[256];
 			read_line(connected_socket, buf);
