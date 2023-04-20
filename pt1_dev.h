@@ -13,10 +13,10 @@ char * bsdev[] = {
 };
 // 衛星波Proxy
 char * bsdev_proxy[] = {
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyS0.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyS1.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyS2.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyS3.so"
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-S0.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-S1.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-S2.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-S3.so"
 };
 
 // 地上波
@@ -28,10 +28,10 @@ char * isdb_t_dev[] = {
 };
 // 地上波Proxy
 char * isdb_t_dev_proxy[] = {
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyT0.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyT1.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyT2.so",
-	(char *)"/usr/local/lib/BonDriver/BonDriver_ProxyT3.so"
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-T0.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-T1.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-T2.so",
+	(char *)"/usr/local/lib/BonDriver/BonDriver_Proxy-T3.so"
 };
 
 #define NUM_BSDEV				(sizeof(bsdev)/sizeof(char *))
