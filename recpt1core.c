@@ -523,8 +523,7 @@ OPEN_TUNER:;
 		return 1;
 
 SUCCESS_EXIT:
-		if(tdata->tune_persistent)
-			fprintf(stderr, "driver = %s\n", tuner[lp]);
+		fprintf(stderr, "driver = %s\n", tuner[lp]);
 	}
 	tdata->table = table_tmp;
 	if(reqChannel)
