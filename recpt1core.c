@@ -361,55 +361,54 @@ tune(char *channel, thread_data *tdata, char *driver)
 		dwSendBonNum = table_tmp->set_freq;
 		reqChannel = TRUE;
 	}
+	fprintf(stderr, "SendBonNum: %d\n", dwSendBonNum);
 
 	/* open tuner */
 	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
-	int num_devs;
+	int num_devs = 0;
 	if(dri_tmp && *dri_tmp == 'P'){
 		// proxy
-		dri_tmp++;
 		aera = 1;
+		dri_tmp++;
 	}else
 		aera = 0;
+	if(dri_tmp){
+		if(*dri_tmp == 'S'){
+			if(aera == 0){
+				tuner = bsdev;
+				num_devs = NUM_BSDEV;
+			}else{
+				tuner = bsdev_proxy;
+				num_devs = NUM_BSDEV_PROXY;
+			}
+			dri_tmp++;
+		}else if(*dri_tmp == 'T'){
+			if(aera == 0){
+				tuner = isdb_t_dev;
+				num_devs = NUM_ISDB_T_DEV;
+			}else{
+				tuner = isdb_t_dev_proxy;
+				num_devs = NUM_ISDB_T_DEV_PROXY;
+			}
+			dri_tmp++;
+		}
+	}
+
 	if(dri_tmp && *dri_tmp != '\0') {
 		/* case 1: specified tuner driver */
 		int num = 0;
 		int code;
 
-		if(*dri_tmp == 'S'){
-			if(table_tmp->type != CHTYPE_GROUND){
-				if(aera == 0){
-					tuner = bsdev;
-					num_devs = NUM_BSDEV;
-				}else{
-					tuner = bsdev_proxy;
-					num_devs = NUM_BSDEV_PROXY;
-				}
-			}else
-				goto OPEN_TUNER;
-		}else if(*dri_tmp == 'T'){
-			if(table_tmp->type != CHTYPE_SATELLITE){
-				if(aera == 0){
-					tuner = isdb_t_dev;
-					num_devs = NUM_ISDB_T_DEV;
-				}else{
-					tuner = isdb_t_dev_proxy;
-					num_devs = NUM_ISDB_T_DEV_PROXY;
-				}
-			}else
-				goto OPEN_TUNER;
-		}else
-			goto OPEN_TUNER;
-		if(!isdigit(*++dri_tmp))
-			goto OPEN_TUNER;
-		do{
-			num = num * 10 + *dri_tmp++ - '0';
-		}while(isdigit(*dri_tmp));
-		if(*dri_tmp == '\0' && num+1 <= num_devs)
-			driver = tuner[num];
-OPEN_TUNER:;
+		if(!isdigit(*dri_tmp)){
+			do{
+				num = num * 10 + *dri_tmp++ - '0';
+			}while(isdigit(*dri_tmp));
+			if(*dri_tmp == '\0' && num+1 <= num_devs)
+				driver = tuner[num];
+		}
+
 		if((code = open_tuner(tdata, driver))){
 			if(code == -4)
 				fprintf(stderr, "OpenTuner erro: %s\n", driver);
@@ -441,29 +440,31 @@ OPEN_TUNER:;
 		/* case 2: loop around available devices */
 		int lp;
 
-		switch(table_tmp->type){
-			case CHTYPE_BonNUMBER:
-			default:
-				fprintf(stderr, "No driver name\n");
-				goto err;
-			case CHTYPE_SATELLITE:
-				if(aera == 0){
-					tuner = bsdev;
-					num_devs = NUM_BSDEV;
-				}else{
-					tuner = bsdev_proxy;
-					num_devs = NUM_BSDEV_PROXY;
-				}
-				break;
-			case CHTYPE_GROUND:
-				if(aera == 0){
-					tuner = isdb_t_dev;
-					num_devs = NUM_ISDB_T_DEV;
-				}else{
-					tuner = isdb_t_dev_proxy;
-					num_devs = NUM_ISDB_T_DEV_PROXY;
-				}
-				break;
+		if(num_devs == 0){
+			switch(table_tmp->type){
+				case CHTYPE_BonNUMBER:
+				default:
+					fprintf(stderr, "No driver name\n");
+					goto err;
+				case CHTYPE_SATELLITE:
+					if(aera == 0){
+						tuner = bsdev;
+						num_devs = NUM_BSDEV;
+					}else{
+						tuner = bsdev_proxy;
+						num_devs = NUM_BSDEV_PROXY;
+					}
+					break;
+				case CHTYPE_GROUND:
+					if(aera == 0){
+						tuner = isdb_t_dev;
+						num_devs = NUM_ISDB_T_DEV;
+					}else{
+						tuner = isdb_t_dev_proxy;
+						num_devs = NUM_ISDB_T_DEV_PROXY;
+					}
+					break;
+			}
 		}
 
 		for(lp = 0; lp < num_devs; lp++) {
