@@ -99,6 +99,72 @@ FIND_EXIT:
 }
 
 int
+get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
+{
+	FILE *fp;
+	char *p, bufd[256], bufl[256];
+	ssize_t len;
+
+	strncpy(bufd, driver, sizeof(bufd) - 8);
+	bufd[sizeof(bufd) - 8] = '\0';
+	strcat(bufd, ".ch");
+
+	fp = fopen(bufd, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Cannot open '%s'\n", bufd);
+		return 1;
+	}
+
+	boolean find = FALSE;
+	int i = 0;
+	len = sizeof(bufl) - 1;
+	while (fgets(bufl, sizeof(bufl), fp)) {
+		if (bufl[0] == ';')
+			continue;
+		p = bufl + strlen(bufl) - 1;
+		while ((p >= bufl) && (*p == '\r' || *p == '\n'))
+			*p-- = '\0';
+		if (p < bufl)
+			continue;
+
+		int n = 0;
+		char *cp[3];
+		boolean bOk = FALSE;
+		p = cp[n++] = bufl;
+		while (1) {
+			p = strchr(p, '\t');
+			if (p) {
+				*p++ = '\0';
+				cp[n++] = p;
+				if (n > 2) {
+					bOk = TRUE;
+					break;
+				}
+			} else
+				break;
+		}
+		if (bOk) {
+			if (strcmp(channel, cp[0]) == 0) {
+				*dwSpace = (DWORD)strtol(cp[1], NULL, 10);
+				*dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+				find = TRUE;
+				break;
+			}
+		}
+	}
+
+	fclose(fp);
+
+	if(find){
+		fprintf(stderr, "find '%s': channel=%s, dwSpace=%d, dwChannel=%d \n", bufd, channel, *dwSpace, *dwChannel);
+		return 0;
+	}else {
+		fprintf(stderr, "Cannot find '%s': channel=%s\n", bufd, channel);
+		return 2;
+	}
+}
+
+int
 open_tuner(thread_data *tdata, char *driver)
 {
 	// モジュールロード
@@ -423,6 +489,9 @@ tune(char *channel, thread_data *tdata, char *driver)
 		}
 #endif
 		/* tune to specified channel */
+		if(get_bon_channel(channel, driver, &tdata->dwSpace, &dwSendBonNum)){
+			goto err;
+		}
 		while(tdata->pIBon2->SetChannel(tdata->dwSpace, dwSendBonNum) == FALSE) {
 			if(tdata->tune_persistent) {
 				if(f_exit)
@@ -469,6 +538,10 @@ tune(char *channel, thread_data *tdata, char *driver)
 
 		for(lp = 0; lp < num_devs; lp++) {
 			if(open_tuner(tdata, tuner[lp]) == 0) {
+				if(get_bon_channel(channel, tuner[lp], &tdata->dwSpace, &dwSendBonNum)){
+					close_tuner(tdata);
+					continue;
+				}
 				// 同CHチェック・BSのCh比較は、局再編があると正しくない可能性がある
 				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 				if(m_dwChannel == dwSendBonNum)
@@ -483,6 +556,10 @@ tune(char *channel, thread_data *tdata, char *driver)
 			int count = 0;
 
 			if(open_tuner(tdata, tuner[lp]) == 0) {
+				if(get_bon_channel(channel, tuner[lp], &tdata->dwSpace, &dwSendBonNum)){
+					close_tuner(tdata);
+					continue;
+				}
 				// 使用中チェック・BSのCh比較は、局再編があると正しくない可能性がある
 				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 				if(m_dwChannel != ARIB_CH_ERROR){
