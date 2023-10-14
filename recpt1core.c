@@ -75,7 +75,6 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 {
 	FILE *fp;
 	char *p, bufd[256], bufl[256];
-	ssize_t len;
 
 	DWORD tmp_dwSpace;
 	DWORD tmp_dwChannel;
@@ -91,8 +90,6 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 	}
 
 	boolean find = FALSE;
-	int i = 0;
-	len = sizeof(bufl) - 1;
 	while (fgets(bufl, sizeof(bufl), fp)) {
 		if (bufl[0] == ';')
 			continue;
