@@ -44,6 +44,8 @@
 /* used in checksigna.c */
 #define MAX_RETRY (2)
 
+#define MAX_DRIVER_CH 255
+
 /* type definitions */
 typedef int boolean;
 
@@ -58,6 +60,7 @@ typedef struct _msgbuf {
 } message_buf;
 
 typedef struct _thread_data {
+    char driver_ch[MAX_DRIVER_CH];    // tuner チャンネルファイル 
     DWORD dwSpace;			// tuner スペース指定(デフォルトは0)
     DWORD dwChannel;        // tuner チャンネル指定(デフォルトは-1)
 
