@@ -12,64 +12,62 @@
 
 /* globals */
 boolean f_exit = FALSE;
-BON_CHANNEL_SET *isdb_t_conv_set = NULL;
-
+BON_CHANNEL_SET channel_set;
 
 /* lookup frequency conversion table*/
 BON_CHANNEL_SET *
 searchrecoff(char *channel)
 {
-	BON_CHANNEL_SET *isdb_t_conv_tmp;
 	DWORD node;
 	DWORD slot;
 	DWORD dwBonChannel = channelAribToBon(channel);
 
 	if( dwBonChannel == ARIB_CH_ERROR )
 		return NULL;
-	isdb_t_conv_tmp = (BON_CHANNEL_SET *)malloc(sizeof(BON_CHANNEL_SET));
-	memset(isdb_t_conv_tmp->parm_freq, 0, 16);
-	isdb_t_conv_tmp->set_freq = (int)dwBonChannel;
+	memset(channel_set.parm_freq, 0, 16);
+	channel_set.bon_num = -1;
+	channel_set.set_freq = (int)dwBonChannel;
 	switch(dwBonChannel>>16){
 		case BON_CHANNEL:
 			node = (int)dwBonChannel;
-			isdb_t_conv_tmp->bon_num = node;
-			isdb_t_conv_tmp->type = CHTYPE_BonNUMBER;
-			sprintf(isdb_t_conv_tmp->parm_freq, "B%d", node);
+			channel_set.bon_num = node;
+			channel_set.type = CHTYPE_BonNUMBER;
+			sprintf(channel_set.parm_freq, "B%d", node);
 			break;
 		case ARIB_GROUND:
 		case ARIB_CATV:
-			isdb_t_conv_tmp->bon_num = (int)(dwBonChannel & 0xFFFFU);
-			isdb_t_conv_tmp->type = CHTYPE_GROUND;
-			sprintf(isdb_t_conv_tmp->parm_freq, "%s", channel);
+			channel_set.bon_num = (int)(dwBonChannel & 0xFFFFU);
+			channel_set.type = CHTYPE_GROUND;
+			sprintf(channel_set.parm_freq, "%s", channel);
 			break;
 		case ARIB_BS:
 			node = (dwBonChannel & 0x01f0U) >> 4;
 			slot = dwBonChannel & 0x0007U;
-			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
-			sprintf(isdb_t_conv_tmp->parm_freq, "BS%d_%d", node, slot);
+			channel_set.type = CHTYPE_SATELLITE;
+			sprintf(channel_set.parm_freq, "BS%d_%d", node, slot);
 			break;
 		case ARIB_BS_SID:
-			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
+			channel_set.type = CHTYPE_SATELLITE;
 			break;
 		case ARIB_CS:
 			node = dwBonChannel & 0x00ffU;
-			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
-			sprintf(isdb_t_conv_tmp->parm_freq, "CS%d", node);
+			channel_set.type = CHTYPE_SATELLITE;
+			sprintf(channel_set.parm_freq, "CS%d", node);
 			break;
 		case ARIB_TSID:
 			node = (dwBonChannel & 0x01f0U) >> 4;
-			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
+			channel_set.type = CHTYPE_SATELLITE;
 			if( (dwBonChannel & 0xf008U) == 0x4000U ){
 				slot = dwBonChannel & 0x0007U;
 				if( node == 15 )
 					slot--;
-				sprintf(isdb_t_conv_tmp->parm_freq, "BS%d_%d", node, slot);
+				sprintf(channel_set.parm_freq, "BS%d_%d", node, slot);
 			}else{
-				sprintf(isdb_t_conv_tmp->parm_freq, "CS%d", node);
+				sprintf(channel_set.parm_freq, "CS%d", node);
 			}
 			break;
 	}
-	return isdb_t_conv_tmp;
+	return &channel_set;
 }
 
 int
@@ -206,7 +204,6 @@ close_tuner(thread_data *tdata)
 	int rv = 0;
 
 	if(tdata->table){
-		free(tdata->table);
 		tdata->table = NULL;
 	}
 	if(tdata->hModule == NULL)
@@ -453,7 +450,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 		if((code = open_tuner(tdata, driver))){
 			if(code == -4)
 				fprintf(stderr, "OpenTuner erro: %s\n", driver);
-			free(table_tmp);
 			return 1;
 		}
 		/* tune to specified channel */
@@ -559,7 +555,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 
 		/* all tuners cannot be used */
 		if (tuned == FALSE) {
-			free(table_tmp);
 			fprintf(stderr, "Cannot tune to the specified channel\n");
 			return 1;
 		}
@@ -587,7 +582,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 
 	return 0; /* success */
 err:
-	free(table_tmp);
 	close_tuner(tdata);
 
 	return 1;
