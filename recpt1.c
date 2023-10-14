@@ -654,6 +654,7 @@ main(int argc, char **argv)
 #endif
 	tdata.hModule = NULL;
 	tdata.dwSpace = 0;
+	tdata.dwChannel = -1;
 	tdata.table = NULL;
 	tdata.lnb = -1;
 
@@ -676,7 +677,6 @@ main(int argc, char **argv)
 		{ "addr",	 1, NULL, 'a'},
 		{ "port",	 1, NULL, 'p'},
 		{ "http",	 1, NULL, 'H'},
-		{ "space",   1, NULL, 'S'},
 		{ "driver",  1, NULL, 'd'},
 		{ "help",	 0, NULL, 'h'},
 		{ "version", 0, NULL, 'v'},
@@ -707,7 +707,7 @@ main(int argc, char **argv)
 	unsigned int len;
 	char *channel = NULL;
 
-	while((result = getopt_long(argc, argv, "br:smua:H:p:S:d:hvli:",
+	while((result = getopt_long(argc, argv, "br:smua:H:p:d:hvli:",
 								long_options, &option_index)) != -1) {
 		switch(result) {
 #ifdef HAVE_LIBARIB25
@@ -783,10 +783,6 @@ main(int argc, char **argv)
 		case 'p':
 			port_to = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "UDP port: %d\n", port_to);
-			break;
-		case 'S':
-			tdata.dwSpace = (int)strtol(optarg, NULL, 10);
-			fprintf(stderr, "using Space: %i\n", tdata.dwSpace);
 			break;
 		case 'd':
 			driver = optarg;
