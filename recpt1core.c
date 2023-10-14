@@ -100,22 +100,16 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 			continue;
 
 		int n = 0;
-		char *cp[3];
-		boolean bOk = FALSE;
+		char *cp[4];
 		p = cp[n++] = bufl;
-		while (1) {
-			p = strchr(p, '\t');
-			if (p) {
-				*p++ = '\0';
-				cp[n++] = p;
-				if (n > 2) {
-					bOk = TRUE;
-					break;
-				}
-			} else
+		while ((p = strchr(p, '\t'))) {
+			*p++ = '\0';
+			cp[n++] = p;
+			if (n > 3) {
 				break;
+			}
 		}
-		if (bOk) {
+		if (n > 2) {
 			if (strcmp(channel, cp[0]) == 0) {
 				tmp_dwSpace = (DWORD)strtol(cp[1], NULL, 10);
 				tmp_dwChannel = (DWORD)strtol(cp[2], NULL, 10);
