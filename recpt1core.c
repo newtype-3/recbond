@@ -454,24 +454,29 @@ tune(char *channel, thread_data *tdata, char *driver)
 		}
 		/* tune to specified channel */
 		if(get_bon_channel(channel, driver, tmp_driver_ch, MAX_DRIVER_CH, &tmp_dwSpace, &tmp_dwChannel)){
-			goto err;
+			close_tuner(tdata);
+			return 1;
 		}
 #if 0
 		DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 		if(m_dwChannel != ARIB_CH_ERROR && m_dwChannel != dwSendBonNum){
 			fprintf(stderr, "Tuner has been used: %s\n", driver);
-			goto err;
+			close_tuner(tdata);
+			return 1;
 		}
 #endif
 		while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
 			if(tdata->tune_persistent) {
-				if(f_exit)
-					goto err;
+				if(f_exit) {
+					close_tuner(tdata);
+					return 1;
+				}
 				fprintf(stderr, "No signal. Still trying: %s\n", driver);
 			}
 			else {
+				close_tuner(tdata);
 				fprintf(stderr, "Cannot tune to the specified channel: %s\n", driver);
-				goto err;
+				return 1;
 			}
 		}
 		fprintf(stderr, "driver = %s\n", driver);
@@ -486,7 +491,8 @@ tune(char *channel, thread_data *tdata, char *driver)
 				case CHTYPE_BonNUMBER:
 				default:
 					fprintf(stderr, "No driver name\n");
-					goto err;
+					close_tuner(tdata);
+					return 1;
 				case CHTYPE_SATELLITE:
 					if(aera == 0){
 						tuner = bsdev;
@@ -527,8 +533,10 @@ tune(char *channel, thread_data *tdata, char *driver)
 					/* tune to specified channel */
 					if(tdata->tune_persistent) {
 						while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE && count < MAX_RETRY) {
-							if(f_exit)
-								goto err;
+							if(f_exit) {
+								close_tuner(tdata);
+								return 1;
+							}
 							fprintf(stderr, "No signal. Still trying: %s\n", tuner[lp]);
 							count++;
 						}
@@ -581,8 +589,4 @@ tune(char *channel, thread_data *tdata, char *driver)
 	}
 
 	return 0; /* success */
-err:
-	close_tuner(tdata);
-
-	return 1;
 }
