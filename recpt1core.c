@@ -71,7 +71,7 @@ searchrecoff(char *channel)
 }
 
 int
-get_bon_channel(char *channel, char *driver, char *driver_ch, int driver_ch_len, DWORD *dwSpace, DWORD *dwChannel)
+get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 {
 	FILE *fp;
 	char *p, bufd[256], bufl[256];
@@ -83,9 +83,6 @@ get_bon_channel(char *channel, char *driver, char *driver_ch, int driver_ch_len,
 	strncpy(bufd, driver, sizeof(bufd) - 8);
 	bufd[sizeof(bufd) - 8] = '\0';
 	strcat(bufd, ".ch");
-
-	strncpy(driver_ch, bufd, driver_ch_len - 1);
-	driver_ch[driver_ch_len - 1] = '\0';
 
 	fp = fopen(bufd, "r");
 	if (fp == NULL) {
@@ -402,7 +399,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
-	char tmp_driver_ch[MAX_DRIVER_CH];
+	char *tmp_driver;
 	DWORD tmp_dwSpace;
 	DWORD tmp_dwChannel;
 	int num_devs = 0;
@@ -453,7 +450,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 		/* tune to specified channel */
-		if(get_bon_channel(channel, driver, tmp_driver_ch, MAX_DRIVER_CH, &tmp_dwSpace, &tmp_dwChannel)){
+		if(get_bon_channel(channel, driver, &tmp_dwSpace, &tmp_dwChannel)){
 			close_tuner(tdata);
 			return 1;
 		}
@@ -480,6 +477,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			}
 		}
 		fprintf(stderr, "driver = %s\n", driver);
+		tmp_driver = driver;
 	}
 	else {
 		/* case 2: loop around available devices */
@@ -518,7 +516,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			int count = 0;
 
 			if(open_tuner(tdata, tuner[lp]) == 0) {
-				if(get_bon_channel(channel, tuner[lp], tmp_driver_ch, MAX_DRIVER_CH, &tmp_dwSpace, &tmp_dwChannel)){
+				if(get_bon_channel(channel, tuner[lp], &tmp_dwSpace, &tmp_dwChannel)){
 					close_tuner(tdata);
 					continue;
 				}
@@ -557,6 +555,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 
 				tuned = TRUE;
 				fprintf(stderr, "driver = %s\n", tuner[lp]);
+				tmp_driver = tuner[lp];
 				break; /* found suitable tuner */
 			}
 		}
@@ -567,8 +566,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 	}
-	strncpy(tdata->driver_ch, tmp_driver_ch, MAX_DRIVER_CH);
-	tdata->driver_ch[MAX_DRIVER_CH - 1] = '\0';
+	tdata->driver = tmp_driver;
 	tdata->dwSpace = tmp_dwSpace;
 	tdata->dwChannel = tmp_dwChannel;
 	tdata->table = table_tmp;
