@@ -15,16 +15,6 @@ boolean f_exit = FALSE;
 BON_CHANNEL_SET *isdb_t_conv_set = NULL;
 
 
-int getBonNumber(DWORD node, DWORD slot)
-{
-	for(int lp = 0; isdb_t_conv_table[lp].parm_freq != NULL; lp++) {
-		if(isdb_t_conv_table[lp].set_freq == (int)node && isdb_t_conv_table[lp].add_freq == (int)slot){
-			return lp;
-		}
-	}
-	return ARIB_CH_ERROR;
-}
-
 /* lookup frequency conversion table*/
 BON_CHANNEL_SET *
 searchrecoff(char *channel)
@@ -41,7 +31,8 @@ searchrecoff(char *channel)
 	isdb_t_conv_tmp->set_freq = (int)dwBonChannel;
 	switch(dwBonChannel>>16){
 		case BON_CHANNEL:
-			isdb_t_conv_tmp->bon_num = (int)dwBonChannel;
+			node = (int)dwBonChannel;
+			isdb_t_conv_tmp->bon_num = node;
 			isdb_t_conv_tmp->type = CHTYPE_BonNUMBER;
 			sprintf(isdb_t_conv_tmp->parm_freq, "B%d", node);
 			break;
@@ -56,28 +47,14 @@ searchrecoff(char *channel)
 			slot = dwBonChannel & 0x0007U;
 			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
 			sprintf(isdb_t_conv_tmp->parm_freq, "BS%d_%d", node, slot);
-			isdb_t_conv_tmp->bon_num = getBonNumber(node/2, slot);
 			break;
 		case ARIB_BS_SID:
-			for(int lp = 0; isdb_t_conv_table[lp].parm_freq != NULL; lp++) {
-				/* return entry number in the table when strings match and
-				 * lengths are same. */
-//				if((memcmp(isdb_t_conv_table[lp].parm_freq, channel, strlen(channel)) == 0) &&
-//						(strlen(channel) == strlen(isdb_t_conv_table[lp].parm_freq))) {
-				if(strcmp(isdb_t_conv_table[lp].parm_freq, channel) == 0){
-					isdb_t_conv_tmp->bon_num = lp;
-					isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
-					sprintf(isdb_t_conv_tmp->parm_freq, "BS%d_%d", isdb_t_conv_table[lp].set_freq*2+1, isdb_t_conv_table[lp].add_freq);
-					goto FIND_EXIT;
-				}
-			}
-			free(isdb_t_conv_tmp);
-			return NULL;
+			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
+			break;
 		case ARIB_CS:
 			node = dwBonChannel & 0x00ffU;
 			isdb_t_conv_tmp->type = CHTYPE_SATELLITE;
 			sprintf(isdb_t_conv_tmp->parm_freq, "CS%d", node);
-			isdb_t_conv_tmp->bon_num = getBonNumber(node/2+11, 0);
 			break;
 		case ARIB_TSID:
 			node = (dwBonChannel & 0x01f0U) >> 4;
@@ -87,14 +64,11 @@ searchrecoff(char *channel)
 				if( node == 15 )
 					slot--;
 				sprintf(isdb_t_conv_tmp->parm_freq, "BS%d_%d", node, slot);
-				isdb_t_conv_tmp->bon_num = getBonNumber(node/2, slot);
 			}else{
 				sprintf(isdb_t_conv_tmp->parm_freq, "CS%d", node);
-				isdb_t_conv_tmp->bon_num = getBonNumber(node/2+11, 0);
 			}
 			break;
 	}
-FIND_EXIT:
 	return isdb_t_conv_tmp;
 }
 
@@ -418,21 +392,12 @@ tune(char *channel, thread_data *tdata, char *driver)
 		fprintf(stderr, "Invalid Channel: %s\n", channel);
 		return 1;
 	}
-	DWORD dwSendBonNum;
-	boolean reqChannel;
-	if(table_tmp->bon_num != ARIB_CH_ERROR){
-		dwSendBonNum = table_tmp->bon_num;
-		reqChannel = FALSE;
-	}else{
-		dwSendBonNum = table_tmp->set_freq;
-		reqChannel = TRUE;
-	}
-	fprintf(stderr, "SendBonNum: %d\n", dwSendBonNum);
 
 	/* open tuner */
 	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
+	DWORD dwSendBonNum;
 	int num_devs = 0;
 	if(dri_tmp && *dri_tmp == 'P'){
 		// proxy
@@ -481,6 +446,10 @@ tune(char *channel, thread_data *tdata, char *driver)
 			free(table_tmp);
 			return 1;
 		}
+		/* tune to specified channel */
+		if(get_bon_channel(channel, driver, &tdata->dwSpace, &dwSendBonNum)){
+			goto err;
+		}
 #if 0
 		DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 		if(m_dwChannel != ARIB_CH_ERROR && m_dwChannel != dwSendBonNum){
@@ -488,10 +457,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 			goto err;
 		}
 #endif
-		/* tune to specified channel */
-		if(get_bon_channel(channel, driver, &tdata->dwSpace, &dwSendBonNum)){
-			goto err;
-		}
 		while(tdata->pIBon2->SetChannel(tdata->dwSpace, dwSendBonNum) == FALSE) {
 			if(tdata->tune_persistent) {
 				if(f_exit)
@@ -590,8 +555,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 		}
 	}
 	tdata->table = table_tmp;
-	if(reqChannel)
-		table_tmp->bon_num = tdata->pIBon2->GetCurChannel();
 	// TS受信開始待ち
 	timespec ts;
 	ts.tv_sec = 0;
