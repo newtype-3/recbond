@@ -88,6 +88,14 @@ typedef struct _thread_data {
 
 extern const char *version;
 extern boolean f_exit;
+extern char *bsdev[];			// 衛星波
+extern int num_bsdev;
+extern char *bsdev_proxy[];		// 衛星波Proxy
+extern int num_bsdev_proxy;
+extern char *isdb_t_dev[];		// 地上波
+extern int num_isdb_t_dev;
+extern char *isdb_t_dev_proxy[];	// 地上波Proxy
+extern int num_isdb_t_dev_proxy;
 
 /* prototypes */
 int tune(char *channel, thread_data *tdata, char *device);

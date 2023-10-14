@@ -638,6 +638,88 @@ init_signal_handlers(pthread_t *signal_thread, thread_data *tdata)
 }
 
 int
+set_driver_table(void)
+{
+	FILE *fp;
+	char *p, buf[256];
+	ssize_t len;
+
+	if ((len = readlink("/proc/self/exe", buf, sizeof(buf) - 8)) == -1)
+		return 2;
+	buf[len] = '\0';
+	strcat(buf, ".conf");
+
+	fp = fopen(buf, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Cannot open '%s'\n", buf);
+		return 1;
+	}
+
+	int i = 0;
+	int ib = 0;
+	int ibp = 0;
+	int it = 0;
+	int itp = 0;
+	while (fgets(buf, sizeof(buf), fp) && i < MAX_DRIVER - 1) {
+		if (buf[0] == ';')
+			continue;
+		p = buf + strlen(buf) - 1;
+		while ((p >= buf) && (*p == '\r' || *p == '\n'))
+			*p-- = '\0';
+		if (p < buf)
+			continue;
+
+		int n = 0;
+		char *cp[3];
+		p = cp[n++] = buf;
+		while ((p = strchr(p, '\t'))) {
+			*p++ = '\0';
+			cp[n++] = p;
+			if (n > 2) {
+				break;
+			}
+		}
+		if (n > 1) {
+			switch(cp[0][0]) {
+			case 'S':
+				switch(cp[0][1]) {
+				case '\0':
+					bsdev[ib] = strdup(cp[1]);
+					ib++;
+					break;
+				case 'P':
+					bsdev_proxy[ibp] = strdup(cp[1]);
+					ibp++;
+					break;
+				}
+				break;
+			case 'T':
+				switch(cp[0][1]) {
+				case '\0':
+					isdb_t_dev[it] = strdup(cp[1]);
+					it++;
+					break;
+				case 'P':
+					isdb_t_dev_proxy[itp] = strdup(cp[1]);
+					itp++;
+					break;
+				}
+				break;
+			}
+			i++;
+		}
+	}
+
+	fclose(fp);
+	num_bsdev = ib;
+	num_bsdev_proxy = ibp;
+	num_isdb_t_dev = it;
+	num_isdb_t_dev_proxy = itp;
+
+	return 0;
+}
+
+int
 main(int argc, char **argv)
 {
 	pthread_t signal_thread;
@@ -712,6 +794,9 @@ main(int argc, char **argv)
 	int connected_socket = 0, listening_socket = 0;
 	unsigned int len;
 	char *channel = NULL;
+
+	if (set_driver_table() != 0)
+		return 1;
 
 	while((result = getopt_long(argc, argv, "br:smua:H:p:d:hvli:",
 								long_options, &option_index)) != -1) {

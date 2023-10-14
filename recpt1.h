@@ -5,6 +5,7 @@
 #define CHTYPE_SATELLITE    0        /* satellite digital */
 #define CHTYPE_GROUND       1        /* terrestrial digital */
 #define CHTYPE_BonNUMBER    2        // BonDriver number
+#define MAX_DRIVER          256
 #define MAX_QUEUE           8192
 #define MAX_READ_SIZE       (188 * 256) // BonDriver_DVB.hのTS_BUFSIZEと同値
 #define WRITE_SIZE          (1024 * 1024 * 2)

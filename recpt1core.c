@@ -12,6 +12,14 @@
 
 /* globals */
 boolean f_exit = FALSE;
+char *bsdev[MAX_DRIVER];			// 衛星波
+int num_bsdev;
+char *bsdev_proxy[MAX_DRIVER];		// 衛星波Proxy
+int num_bsdev_proxy;
+char *isdb_t_dev[MAX_DRIVER];		// 地上波
+int num_isdb_t_dev;
+char *isdb_t_dev_proxy[MAX_DRIVER];	// 地上波Proxy
+int num_isdb_t_dev_proxy;
 BON_CHANNEL_SET channel_set;
 
 /* lookup frequency conversion table*/
@@ -404,19 +412,19 @@ tune(char *channel, thread_data *tdata, char *driver)
 		if(*dri_tmp == 'S'){
 			if(aera == 0){
 				tuner = bsdev;
-				num_devs = NUM_BSDEV;
+				num_devs = num_bsdev;
 			}else{
 				tuner = bsdev_proxy;
-				num_devs = NUM_BSDEV_PROXY;
+				num_devs = num_bsdev_proxy;
 			}
 			dri_tmp++;
 		}else if(*dri_tmp == 'T'){
 			if(aera == 0){
 				tuner = isdb_t_dev;
-				num_devs = NUM_ISDB_T_DEV;
+				num_devs = num_isdb_t_dev;
 			}else{
 				tuner = isdb_t_dev_proxy;
-				num_devs = NUM_ISDB_T_DEV_PROXY;
+				num_devs = num_isdb_t_dev_proxy;
 			}
 			dri_tmp++;
 		}
@@ -485,19 +493,19 @@ tune(char *channel, thread_data *tdata, char *driver)
 				case CHTYPE_SATELLITE:
 					if(aera == 0){
 						tuner = bsdev;
-						num_devs = NUM_BSDEV;
+						num_devs = num_bsdev;
 					}else{
 						tuner = bsdev_proxy;
-						num_devs = NUM_BSDEV_PROXY;
+						num_devs = num_bsdev_proxy;
 					}
 					break;
 				case CHTYPE_GROUND:
 					if(aera == 0){
 						tuner = isdb_t_dev;
-						num_devs = NUM_ISDB_T_DEV;
+						num_devs = num_isdb_t_dev;
 					}else{
 						tuner = isdb_t_dev_proxy;
-						num_devs = NUM_ISDB_T_DEV_PROXY;
+						num_devs = num_isdb_t_dev_proxy;
 					}
 					break;
 			}
