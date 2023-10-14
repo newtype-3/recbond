@@ -97,6 +97,6 @@ BON_CHANNEL_SET *searchrecoff(char *channel);
 void calc_cn(thread_data *tdata, boolean use_bell);
 int parse_time(const char * rectimestr, int *recsec);
 void do_bell(int bell);
-
+int get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel);
 
 #endif

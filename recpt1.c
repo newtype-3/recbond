@@ -74,6 +74,7 @@ void read_line(int socket, char *p){
 void *
 mq_recv(void *t)
 {
+	BON_CHANNEL_SET btable;
 	BON_CHANNEL_SET *table = NULL;
 	thread_data *tdata = (thread_data *)t;
 	message_buf rbuf;
@@ -88,36 +89,41 @@ mq_recv(void *t)
 
 		sscanf(rbuf.mtext, "ch=%s t=%d e=%d sid=%s", channel, &recsec, &time_to_add, service_id);
 
-		if( (table = searchrecoff(channel)) != NULL )
+		memcpy(&btable, tdata->table, sizeof(btable));
+		if( (table = searchrecoff(channel)) != NULL ) {
 			strcpy(channel, table->parm_freq);
-		if(strcmp(channel, tdata->table->parm_freq)) {
-			if( table == NULL ){
-				table = searchrecoff(channel);
-				if (table == NULL) {
-					fprintf(stderr, "Invalid Channel: %s\n", channel);
-					goto CHECK_TIME_TO_ADD;
-				}
-			}
+		}else{
+			fprintf(stderr, "Invalid Channel: %s\n", channel);
+			goto CHECK_TIME_TO_ADD;
+		}
+		if(strcmp(channel, btable.parm_freq)) {
+			tdata->table = table;
 
 			/* wait for remainder */
 			while(tdata->queue->num_used > 0) {
 				usleep(10000);
 			}
 
-			if (tdata->table->type != table->type) {
+			if (tdata->table->type != btable.type) {
 				/* re-open device */
 				if(close_tuner(tdata) != 0)
 					return NULL;
 
-				tdata->table = table;
 				tune(channel, tdata, NULL);
 			} else {
-				tdata->table = table;
 				/* SET_CHANNEL only */
-				if(tdata->pIBon2->SetChannel(tdata->dwSpace, tdata->table->set_freq) == FALSE) {
+				DWORD tmp_dwSpace;
+				DWORD tmp_dwChannel;
+				if(get_bon_channel(channel, tdata->driver, &tmp_dwSpace, &tmp_dwChannel)){
+					fprintf(stderr, "Invalid Channel: %s\n", channel);
+					goto CHECK_TIME_TO_ADD;
+				}
+				if(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
 					fprintf(stderr, "Cannot tune to the specified channel\n");
 					goto CHECK_TIME_TO_ADD;
 				}
+				tdata->dwSpace = tmp_dwSpace;
+				tdata->dwChannel = tmp_dwChannel;
 				calc_cn(tdata, FALSE);
 			}
 		}
