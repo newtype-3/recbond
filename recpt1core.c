@@ -8,7 +8,6 @@
 #include "AribChannel.h"
 #include "recpt1core.h"
 #include "version.h"
-#include "pt1_dev.h"
 
 /* globals */
 boolean f_exit = FALSE;
