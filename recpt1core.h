@@ -59,6 +59,8 @@ typedef struct _msgbuf {
 
 typedef struct _thread_data {
     DWORD dwSpace;			// tuner スペース指定(デフォルトは0)
+    DWORD dwChannel;        // tuner チャンネル指定(デフォルトは-1)
+
     void *hModule;			// tuner 動的ライブラリへの内部「ハンドル」
 	IBonDriver *pIBon;		// tuner
 	IBonDriver2 *pIBon2;	// tuner

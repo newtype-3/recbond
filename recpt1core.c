@@ -79,6 +79,9 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 	char *p, bufd[256], bufl[256];
 	ssize_t len;
 
+	DWORD tmp_dwSpace;
+	DWORD tmp_dwChannel;
+
 	strncpy(bufd, driver, sizeof(bufd) - 8);
 	bufd[sizeof(bufd) - 8] = '\0';
 	strcat(bufd, ".ch");
@@ -119,8 +122,8 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 		}
 		if (bOk) {
 			if (strcmp(channel, cp[0]) == 0) {
-				*dwSpace = (DWORD)strtol(cp[1], NULL, 10);
-				*dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+				tmp_dwSpace = (DWORD)strtol(cp[1], NULL, 10);
+				tmp_dwChannel = (DWORD)strtol(cp[2], NULL, 10);
 				find = TRUE;
 				break;
 			}
@@ -130,7 +133,9 @@ get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
 	fclose(fp);
 
 	if(find){
-		fprintf(stderr, "find '%s': channel=%s, dwSpace=%d, dwChannel=%d \n", bufd, channel, *dwSpace, *dwChannel);
+		fprintf(stderr, "find '%s': channel=%s, dwSpace=%d, dwChannel=%d \n", bufd, channel, tmp_dwSpace, tmp_dwChannel);
+		*dwSpace = tmp_dwSpace;
+		*dwChannel = tmp_dwChannel;
 		return 0;
 	}else {
 		fprintf(stderr, "Cannot find '%s': channel=%s\n", bufd, channel);
@@ -397,7 +402,8 @@ tune(char *channel, thread_data *tdata, char *driver)
 	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
-	DWORD dwSendBonNum;
+	DWORD tmp_dwSpace;
+	DWORD tmp_dwChannel;
 	int num_devs = 0;
 	if(dri_tmp && *dri_tmp == 'P'){
 		// proxy
@@ -447,7 +453,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 		/* tune to specified channel */
-		if(get_bon_channel(channel, driver, &tdata->dwSpace, &dwSendBonNum)){
+		if(get_bon_channel(channel, driver, &tmp_dwSpace, &tmp_dwChannel)){
 			goto err;
 		}
 #if 0
@@ -457,7 +463,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			goto err;
 		}
 #endif
-		while(tdata->pIBon2->SetChannel(tdata->dwSpace, dwSendBonNum) == FALSE) {
+		while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
 			if(tdata->tune_persistent) {
 				if(f_exit)
 					goto err;
@@ -506,21 +512,21 @@ tune(char *channel, thread_data *tdata, char *driver)
 			int count = 0;
 
 			if(open_tuner(tdata, tuner[lp]) == 0) {
-				if(get_bon_channel(channel, tuner[lp], &tdata->dwSpace, &dwSendBonNum)){
+				if(get_bon_channel(channel, tuner[lp], &tmp_dwSpace, &tmp_dwChannel)){
 					close_tuner(tdata);
 					continue;
 				}
 				// 使用中チェック・違うチャンネルを選局している場合はスキップ
 				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 				if(m_dwChannel != ARIB_CH_ERROR){
-					if(m_dwChannel != dwSendBonNum){
+					if(m_dwChannel != tmp_dwChannel){
 						close_tuner(tdata);
 						continue;
 					}
 				}else{
 					/* tune to specified channel */
 					if(tdata->tune_persistent) {
-						while(tdata->pIBon2->SetChannel(tdata->dwSpace, dwSendBonNum) == FALSE && count < MAX_RETRY) {
+						while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE && count < MAX_RETRY) {
 							if(f_exit)
 								goto err;
 							fprintf(stderr, "No signal. Still trying: %s\n", tuner[lp]);
@@ -534,7 +540,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 						}
 					} /* tune_persistent */
 					else {
-						if(tdata->pIBon2->SetChannel(tdata->dwSpace, dwSendBonNum) == FALSE) {
+						if(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
 							close_tuner(tdata);
 							continue;
 						}
@@ -554,6 +560,8 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 	}
+	tdata->dwSpace = tmp_dwSpace;
+	tdata->dwChannel = tmp_dwChannel;
 	tdata->table = table_tmp;
 	// TS受信開始待ち
 	timespec ts;
