@@ -507,6 +507,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 	}
 	else {
 		/* case 2: loop around available devices */
+		boolean tuned = FALSE;
 		int lp;
 
 		if(num_devs == 0){
@@ -537,22 +538,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 		}
 
 		for(lp = 0; lp < num_devs; lp++) {
-			if(open_tuner(tdata, tuner[lp]) == 0) {
-				if(get_bon_channel(channel, tuner[lp], &tdata->dwSpace, &dwSendBonNum)){
-					close_tuner(tdata);
-					continue;
-				}
-				// 同CHチェック・BSのCh比較は、局再編があると正しくない可能性がある
-				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
-				if(m_dwChannel == dwSendBonNum)
-					goto SUCCESS_EXIT;
-				else{
-					close_tuner(tdata);
-					continue;
-				}
-			}
-		}
-		for(lp = 0; lp < num_devs; lp++) {
 			int count = 0;
 
 			if(open_tuner(tdata, tuner[lp]) == 0) {
@@ -560,7 +545,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 					close_tuner(tdata);
 					continue;
 				}
-				// 使用中チェック・BSのCh比較は、局再編があると正しくない可能性がある
+				// 使用中チェック・違うチャンネルを選局している場合はスキップ
 				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 				if(m_dwChannel != ARIB_CH_ERROR){
 					if(m_dwChannel != dwSendBonNum){
@@ -591,17 +576,18 @@ tune(char *channel, thread_data *tdata, char *driver)
 					}
 				}
 
-				goto SUCCESS_EXIT; /* found suitable tuner */
+				tuned = TRUE;
+				fprintf(stderr, "driver = %s\n", tuner[lp]);
+				break; /* found suitable tuner */
 			}
 		}
 
 		/* all tuners cannot be used */
-		free(table_tmp);
-		fprintf(stderr, "Cannot tune to the specified channel\n");
-		return 1;
-
-SUCCESS_EXIT:
-		fprintf(stderr, "driver = %s\n", tuner[lp]);
+		if (tuned == FALSE) {
+			free(table_tmp);
+			fprintf(stderr, "Cannot tune to the specified channel\n");
+			return 1;
+		}
 	}
 	tdata->table = table_tmp;
 	if(reqChannel)
