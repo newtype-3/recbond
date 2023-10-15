@@ -682,27 +682,21 @@ set_driver_table(void)
 		if (n > 1) {
 			switch(cp[0][0]) {
 			case 'S':
-				switch(cp[0][1]) {
-				case '\0':
-					bsdev[ib] = strdup(cp[1]);
-					ib++;
-					break;
-				case 'P':
+				if (cp[0][1] == 'P') {
 					bsdev_proxy[ibp] = strdup(cp[1]);
 					ibp++;
-					break;
+				} else {
+					bsdev[ib] = strdup(cp[1]);
+					ib++;
 				}
 				break;
 			case 'T':
-				switch(cp[0][1]) {
-				case '\0':
-					isdb_t_dev[it] = strdup(cp[1]);
-					it++;
-					break;
-				case 'P':
+				if (cp[0][1] == 'P') {
 					isdb_t_dev_proxy[itp] = strdup(cp[1]);
 					itp++;
-					break;
+				} else {
+					isdb_t_dev[it] = strdup(cp[1]);
+					it++;
 				}
 				break;
 			}
