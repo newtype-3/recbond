@@ -945,6 +945,10 @@ main(int argc, char **argv)
 		if(parse_time(argv[optind + 1], &tdata.recsec) != 0) // no other thread --yaz
 			return 1;
 
+		/* tune */
+		if(tune(argv[optind], &tdata, driver) != 0)
+			return 1;
+
 		if(tdata.recsec == -1)
 			tdata.indefinite = TRUE;
 
@@ -972,9 +976,6 @@ main(int argc, char **argv)
 			}
 		}
 
-		/* tune */
-		if(tune(argv[optind], &tdata, driver) != 0)
-			return 1;
 		time(&tdata.start_time);
 	}	// http-server add
 
