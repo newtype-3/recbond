@@ -975,8 +975,6 @@ main(int argc, char **argv)
 				}
 			}
 		}
-
-		time(&tdata.start_time);
 	}	// http-server add
 
 #ifdef HAVE_LIBARIB25
@@ -1117,6 +1115,8 @@ main(int argc, char **argv)
 		pthread_create(&ipc_thread, NULL, mq_recv, &tdata);
 
 		fprintf(stderr, "\nRecording...\n");
+
+		time(&tdata.start_time);
 
 		/* read from tuner */
 		while(1) {
