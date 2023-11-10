@@ -1,0 +1,13 @@
+[Unit]
+Description = recbond-http server
+After = network.target
+
+[Service]
+ExecStart = /usr/local/bin/recbond --b25 --driver P --strip --http 46900
+KillSignal = SIGKILL
+Restart = always
+Type = forking
+#PrivateTmp = true
+
+[Install]
+WantedBy = multi-user.target
