@@ -533,8 +533,8 @@ show_usage(char *cmd)
 //	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
 	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
 #else
-//	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
-	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+//	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
 #endif
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Remarks:\n");
@@ -751,19 +751,19 @@ main(int argc, char **argv)
 		{ "emm",	 0, NULL, 'm'},
 		{ "EMM",	 0, NULL, 'm'},
 #endif
-#if 0	// LNB
-		{ "LNB",	 1, NULL, 'n'},
-		{ "lnb",	 1, NULL, 'n'},
-#endif
 		{ "udp",	 0, NULL, 'u'},
 		{ "addr",	 1, NULL, 'a'},
 		{ "port",	 1, NULL, 'p'},
 		{ "http",	 1, NULL, 'H'},
 		{ "driver",  1, NULL, 'd'},
+#if 0	// LNB
+		{ "LNB",	 1, NULL, 'n'},
+		{ "lnb",	 1, NULL, 'n'},
+#endif
+		{ "sid",	 1, NULL, 'i'},
 		{ "help",	 0, NULL, 'h'},
 		{ "version", 0, NULL, 'v'},
 		{ "list",	 0, NULL, 'l'},
-		{ "sid",	 1, NULL, 'i'},
 		{0, 0, NULL, 0} /* terminate */
 	};
 
@@ -792,13 +792,17 @@ main(int argc, char **argv)
 	if (set_driver_table() != 0)
 		return 1;
 
-	while((result = getopt_long(argc, argv, "br:smua:H:p:d:hvli:",
+	while((result = getopt_long(argc, argv, "br:smua:p:H:d:i:hvl",
 								long_options, &option_index)) != -1) {
 		switch(result) {
 #ifdef HAVE_LIBARIB25
 		case 'b':
 			use_b25 = TRUE;
 			fprintf(stderr, "using B25...\n");
+			break;
+		case 'r':
+			dopt.round = (int)strtol(optarg, NULL, 10);
+			fprintf(stderr, "set round %d\n", dopt.round);
 			break;
 		case 's':
 			dopt.strip = TRUE;
@@ -808,20 +812,50 @@ main(int argc, char **argv)
 			dopt.emm = TRUE;
 			fprintf(stderr, "enable B25 emm processing\n");
 			break;
-		case 'r':
-			dopt.round = (int)strtol(optarg, NULL, 10);
-			fprintf(stderr, "set round %d\n", dopt.round);
-			break;
 #endif
 		case 'u':
 			use_udp = TRUE;
 			host_to = (char *)"localhost";
 			fprintf(stderr, "enable UDP broadcasting\n");
 			break;
+		case 'a':
+			use_udp = TRUE;
+			host_to = optarg;
+			fprintf(stderr, "UDP destination address: %s\n", host_to);
+			break;
+		case 'p':
+			port_to = (int)strtol(optarg, NULL, 10);
+			fprintf(stderr, "UDP port: %d\n", port_to);
+			break;
 		case 'H':
 			use_http = TRUE;
 			port_http = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "creating a http daemon\n");
+			break;
+		case 'd':
+			driver = optarg;
+			fprintf(stderr, "using driver: %s\n", driver);
+			break;
+#if 0
+		case 'n':
+			val = (int)strtol(optarg, NULL, 10);
+			switch(val) {
+			case 11:
+				tdata.lnb = 1;
+				break;
+			case 15:
+				tdata.lnb = 2;
+				break;
+			default:
+				tdata.lnb = 0;
+				break;
+			}
+			fprintf(stderr, "LNB = %s\n", voltage[tdata.lnb]);
+			break;
+#endif
+		case 'i':
+			use_splitter = TRUE;
+			sid_list = optarg;
 			break;
 		case 'h':
 			fprintf(stderr, "\n");
@@ -841,41 +875,6 @@ main(int argc, char **argv)
 		case 'l':
 			show_channels();
 			exit(0);
-			break;
-		/* following options require argument */
-#if 0
-		case 'n':
-			val = (int)strtol(optarg, NULL, 10);
-			switch(val) {
-			case 11:
-				tdata.lnb = 1;
-				break;
-			case 15:
-				tdata.lnb = 2;
-				break;
-			default:
-				tdata.lnb = 0;
-				break;
-			}
-			fprintf(stderr, "LNB = %s\n", voltage[tdata.lnb]);
-			break;
-#endif
-		case 'a':
-			use_udp = TRUE;
-			host_to = optarg;
-			fprintf(stderr, "UDP destination address: %s\n", host_to);
-			break;
-		case 'p':
-			port_to = (int)strtol(optarg, NULL, 10);
-			fprintf(stderr, "UDP port: %d\n", port_to);
-			break;
-		case 'd':
-			driver = optarg;
-			fprintf(stderr, "using driver: %s\n", driver);
-			break;
-		case 'i':
-			use_splitter = TRUE;
-			sid_list = optarg;
 			break;
 		}
 	}
