@@ -530,8 +530,8 @@ void
 show_usage(char *cmd)
 {
 #ifdef HAVE_LIBARIB25
-//	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
-	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+//	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber [--foreground]] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+	fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber [--foreground]] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
 #else
 //	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
 	fprintf(stderr, "Usage: \n%s [--udp [--addr hostname --port portnumber]] [--http portnumber] [--driver drivername] [--sid SID1,SID2] channel rectime destfile\n", cmd);
@@ -556,6 +556,7 @@ show_options(void)
 	fprintf(stderr, "  --addr hostname:   Hostname or address to connect\n");
 	fprintf(stderr, "  --port portnumber: Port number to connect\n");
 	fprintf(stderr, "--http portnumber:   Turn on http broadcasting (run as a daemon)\n");
+	fprintf(stderr, "  --foreground:      run foreground not as a daemon\n");
 	fprintf(stderr, "--driver drivername: Specify drivername to use\n");
 #if 0	// LNB
 	fprintf(stderr, "--lnb voltage:       Specify LNB voltage (0, 11, 15)\n");
@@ -755,6 +756,7 @@ main(int argc, char **argv)
 		{ "addr",	 1, NULL, 'a'},
 		{ "port",	 1, NULL, 'p'},
 		{ "http",	 1, NULL, 'H'},
+		{ "foreground",	 0, NULL, 'f'},
 		{ "driver",  1, NULL, 'd'},
 #if 0	// LNB
 		{ "LNB",	 1, NULL, 'n'},
@@ -772,6 +774,7 @@ main(int argc, char **argv)
 #endif
 	boolean use_udp = FALSE;
 	boolean use_http = FALSE;
+	boolean run_daemon = TRUE;
 	boolean fileless = FALSE;
 	boolean use_stdout = FALSE;
 	boolean use_splitter = FALSE;
@@ -792,7 +795,7 @@ main(int argc, char **argv)
 	if (set_driver_table() != 0)
 		return 1;
 
-	while((result = getopt_long(argc, argv, "br:smua:p:H:d:i:hvl",
+	while((result = getopt_long(argc, argv, "br:smua:p:H:fd:i:hvl",
 								long_options, &option_index)) != -1) {
 		switch(result) {
 #ifdef HAVE_LIBARIB25
@@ -831,6 +834,10 @@ main(int argc, char **argv)
 			use_http = TRUE;
 			port_http = (int)strtol(optarg, NULL, 10);
 			fprintf(stderr, "creating a http daemon\n");
+			break;
+		case 'f':
+			run_daemon = FALSE;
+			fprintf(stderr, "run foreground not daemon\n");
 			break;
 		case 'd':
 			driver = optarg;
@@ -880,10 +887,12 @@ main(int argc, char **argv)
 	}
 
 	if(use_http){	// http-server add-
-		fprintf(stderr, "run as a daemon..\n");
-		if(daemon(1,1)){
-			perror("failed to start");
-			return 1;
+		if(run_daemon){
+			fprintf(stderr, "run as a daemon..\n");
+			if(daemon(1,1)){
+				perror("failed to start");
+				return 1;
+			}
 		}
 		fprintf(stderr, "pid = %d\n", getpid());
 
