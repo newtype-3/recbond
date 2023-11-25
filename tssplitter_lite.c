@@ -23,6 +23,7 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include "decoder.h"
 #include "recpt1.h"
 #include "tssplitter_lite.h"
