@@ -44,9 +44,6 @@
 /* ipc message size */
 #define MSGSZ	255
 
-/* globals */
-extern BON_CHANNEL_SET *isdb_t_conv_set;
-
 
 //read 1st line from socket
 void read_line(int socket, char *p){
@@ -74,8 +71,8 @@ void read_line(int socket, char *p){
 void *
 mq_recv(void *t)
 {
-	BON_CHANNEL_SET btable;
-	BON_CHANNEL_SET *table = NULL;
+	BON_CHANNEL_TABLE btable;
+	BON_CHANNEL_TABLE *table = NULL;
 	thread_data *tdata = (thread_data *)t;
 	message_buf rbuf;
 	char channel[16];
@@ -89,22 +86,14 @@ mq_recv(void *t)
 
 		sscanf(rbuf.mtext, "ch=%s t=%d e=%d sid=%s", channel, &recsec, &time_to_add, service_id);
 
-		memcpy(&btable, tdata->table, sizeof(btable));
-		if( (table = searchrecoff(channel)) != NULL ) {
-			strcpy(channel, table->parm_freq);
-		}else{
-			fprintf(stderr, "Invalid Channel: %s\n", channel);
-			goto CHECK_TIME_TO_ADD;
-		}
-		if(strcmp(channel, btable.parm_freq)) {
-			tdata->table = table;
+		if(strcmp(channel, tdata->table->parm_channel)) {
 
 			/* wait for remainder */
 			while(tdata->queue->num_used > 0) {
 				usleep(10000);
 			}
 
-			if (tdata->table->type != btable.type) {
+			if ((table = searchrecoff(channel, tdata->table->driver)) == NULL) {
 				/* re-open device */
 				if(close_tuner(tdata) != 0)
 					return NULL;
@@ -112,18 +101,11 @@ mq_recv(void *t)
 				tune(channel, tdata, NULL);
 			} else {
 				/* SET_CHANNEL only */
-				DWORD tmp_dwSpace;
-				DWORD tmp_dwChannel;
-				if(get_bon_channel(channel, tdata->driver, &tmp_dwSpace, &tmp_dwChannel)){
-					fprintf(stderr, "Invalid Channel: %s\n", channel);
-					goto CHECK_TIME_TO_ADD;
-				}
-				if(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
+				if(tdata->pIBon2->SetChannel(table->dwSpace, table->dwChannel) == FALSE) {
 					fprintf(stderr, "Cannot tune to the specified channel\n");
 					goto CHECK_TIME_TO_ADD;
 				}
-				tdata->dwSpace = tmp_dwSpace;
-				tdata->dwChannel = tmp_dwChannel;
+				tdata->table = table;
 				calc_cn(tdata, FALSE);
 			}
 		}
@@ -639,7 +621,7 @@ init_signal_handlers(pthread_t *signal_thread, thread_data *tdata)
 }
 
 int
-set_driver_table(void)
+set_driver_list(void)
 {
 	FILE *fp;
 	char *p, buf[256];
@@ -657,6 +639,8 @@ set_driver_table(void)
 	}
 
 	int i = 0;
+	int ia = 0;
+	int iap = 0;
 	int ib = 0;
 	int ibp = 0;
 	int it = 0;
@@ -685,18 +669,26 @@ set_driver_table(void)
 			case 'S':
 				if (cp[0][1] == 'P') {
 					bsdev_proxy[ibp] = strdup(cp[1]);
+					alldev_proxy[iap] = bsdev_proxy[ibp];
+					iap++;
 					ibp++;
 				} else {
 					bsdev[ib] = strdup(cp[1]);
+					alldev[ia] = bsdev[ib];
+					ia++;
 					ib++;
 				}
 				break;
 			case 'T':
 				if (cp[0][1] == 'P') {
 					isdb_t_dev_proxy[itp] = strdup(cp[1]);
+					alldev_proxy[iap] = isdb_t_dev_proxy[itp];
+					iap++;
 					itp++;
 				} else {
 					isdb_t_dev[it] = strdup(cp[1]);
+					alldev[ia] = isdb_t_dev[it];
+					ia++;
 					it++;
 				}
 				break;
@@ -706,6 +698,8 @@ set_driver_table(void)
 	}
 
 	fclose(fp);
+	num_alldev = ia;
+	num_alldev_proxy = iap;
 	num_bsdev = ib;
 	num_bsdev_proxy = ibp;
 	num_isdb_t_dev = it;
@@ -736,8 +730,6 @@ main(int argc, char **argv)
 	tdata.dopt = &dopt;
 #endif
 	tdata.hModule = NULL;
-	tdata.dwSpace = 0;
-	tdata.dwChannel = -1;
 	tdata.table = NULL;
 	tdata.lnb = -1;
 
@@ -792,7 +784,7 @@ main(int argc, char **argv)
 	unsigned int len;
 	char *channel = NULL;
 
-	if (set_driver_table() != 0)
+	if (set_driver_list() != 0)
 		return 1;
 
 	while((result = getopt_long(argc, argv, "br:smua:p:H:fd:i:hvl",

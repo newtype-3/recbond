@@ -11,6 +11,10 @@
 
 /* globals */
 boolean f_exit = FALSE;
+char *alldev[MAX_DRIVER];   // Proxyでないドライバ(衛星波+地上波)
+int num_alldev;
+char *alldev_proxy[MAX_DRIVER];   // Proxyなドライバ(衛星波+地上波)
+int num_alldev_proxy;
 char *bsdev[MAX_DRIVER];			// 衛星波
 int num_bsdev;
 char *bsdev_proxy[MAX_DRIVER];		// 衛星波Proxy
@@ -19,123 +23,98 @@ char *isdb_t_dev[MAX_DRIVER];		// 地上波
 int num_isdb_t_dev;
 char *isdb_t_dev_proxy[MAX_DRIVER];	// 地上波Proxy
 int num_isdb_t_dev_proxy;
-BON_CHANNEL_SET channel_set;
+BON_CHANNEL_TABLE bon_channel_table = {NULL, 0, 0, NULL};
 
 /* lookup frequency conversion table*/
-BON_CHANNEL_SET *
-searchrecoff(char *channel)
-{
-	DWORD node;
-	DWORD slot;
-	DWORD dwBonChannel = channelAribToBon(channel);
-
-	if( dwBonChannel == ARIB_CH_ERROR )
-		return NULL;
-	memset(channel_set.parm_freq, 0, 16);
-	channel_set.bon_num = -1;
-	channel_set.set_freq = (int)dwBonChannel;
-	switch(dwBonChannel>>16){
-		case BON_CHANNEL:
-			node = (int)dwBonChannel;
-			channel_set.bon_num = node;
-			channel_set.type = CHTYPE_BonNUMBER;
-			sprintf(channel_set.parm_freq, "B%d", node);
-			break;
-		case ARIB_GROUND:
-		case ARIB_CATV:
-			channel_set.bon_num = (int)(dwBonChannel & 0xFFFFU);
-			channel_set.type = CHTYPE_GROUND;
-			sprintf(channel_set.parm_freq, "%s", channel);
-			break;
-		case ARIB_BS:
-			node = (dwBonChannel & 0x01f0U) >> 4;
-			slot = dwBonChannel & 0x0007U;
-			channel_set.type = CHTYPE_SATELLITE;
-			sprintf(channel_set.parm_freq, "BS%d_%d", node, slot);
-			break;
-		case ARIB_BS_SID:
-			channel_set.type = CHTYPE_SATELLITE;
-			break;
-		case ARIB_CS:
-			node = dwBonChannel & 0x00ffU;
-			channel_set.type = CHTYPE_SATELLITE;
-			sprintf(channel_set.parm_freq, "CS%d", node);
-			break;
-		case ARIB_TSID:
-			node = (dwBonChannel & 0x01f0U) >> 4;
-			channel_set.type = CHTYPE_SATELLITE;
-			if( (dwBonChannel & 0xf008U) == 0x4000U ){
-				slot = dwBonChannel & 0x0007U;
-				if( node == 15 )
-					slot--;
-				sprintf(channel_set.parm_freq, "BS%d_%d", node, slot);
-			}else{
-				sprintf(channel_set.parm_freq, "CS%d", node);
-			}
-			break;
-	}
-	return &channel_set;
-}
-
-int
-get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel)
+BON_CHANNEL_TABLE *
+searchrecoff(char *channel, char *driver)
 {
 	FILE *fp;
 	char *p, bufd[256], bufl[256];
 
-	DWORD tmp_dwSpace;
-	DWORD tmp_dwChannel;
-
-	strncpy(bufd, driver, sizeof(bufd) - 8);
-	bufd[sizeof(bufd) - 8] = '\0';
-	strcat(bufd, ".ch");
-
-	fp = fopen(bufd, "r");
-	if (fp == NULL) {
-		fprintf(stderr, "Cannot open '%s'\n", bufd);
-		return 1;
-	}
-
+	DWORD dwSpace = 0;
+	DWORD dwChannel = 0;
 	boolean find = FALSE;
-	while (fgets(bufl, sizeof(bufl), fp)) {
-		if (bufl[0] == ';')
-			continue;
-		p = bufl + strlen(bufl) - 1;
-		while ((p >= bufl) && (*p == '\r' || *p == '\n'))
-			*p-- = '\0';
-		if (p < bufl)
-			continue;
 
-		int n = 0;
-		char *cp[4];
-		p = cp[n++] = bufl;
-		while ((p = strchr(p, '\t'))) {
-			*p++ = '\0';
-			cp[n++] = p;
-			if (n > 3) {
-				break;
-			}
+	if (channel[0] == 'B' && channel[1] == 'o' && channel[2] == 'n') {
+		char *ch_tmp = channel + 3;
+		while (isdigit((int)*ch_tmp))
+		{
+			dwChannel *= 10;
+			dwChannel += (DWORD)(*ch_tmp++ - '0');
 		}
-		if (n > 2) {
-			if (strcmp(channel, cp[0]) == 0) {
-				tmp_dwSpace = (DWORD)strtol(cp[1], NULL, 10);
-				tmp_dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+		if (*ch_tmp == '_')
+		{
+			dwSpace = dwChannel;
+			dwChannel = 0;
+			ch_tmp++;
+			while (isdigit((int)*ch_tmp))
+			{
+				dwChannel *= 10;
+				dwChannel += (DWORD)(*ch_tmp++ - '0');
+			}
+			if (*ch_tmp == '\0')
+			{
 				find = TRUE;
-				break;
+			}
+		} else if (*ch_tmp == '\0') {
+			find = TRUE;
+		}
+		strcpy(bufd, "[direct]");
+	} else {
+		strncpy(bufd, driver, sizeof(bufd) - 8);
+		bufd[sizeof(bufd) - 8] = '\0';
+		strcat(bufd, ".ch");
+
+		fp = fopen(bufd, "r");
+		if (fp == NULL) {
+			fprintf(stderr, "Cannot open '%s'\n", bufd);
+			return NULL;
+		}
+
+		while (fgets(bufl, sizeof(bufl), fp)) {
+			if (bufl[0] == ';')
+				continue;
+			p = bufl + strlen(bufl) - 1;
+			while ((p >= bufl) && (*p == '\r' || *p == '\n'))
+				*p-- = '\0';
+			if (p < bufl)
+				continue;
+
+			int n = 0;
+			char *cp[4];
+			p = cp[n++] = bufl;
+			while ((p = strchr(p, '\t'))) {
+				*p++ = '\0';
+				cp[n++] = p;
+				if (n > 3) {
+					break;
+				}
+			}
+			if (n > 2) {
+				if (strcmp(channel, cp[0]) == 0) {
+					dwSpace = (DWORD)strtol(cp[1], NULL, 10);
+					dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+					find = TRUE;
+					break;
+				}
 			}
 		}
+
+		fclose(fp);
 	}
 
-	fclose(fp);
 
 	if(find){
-		fprintf(stderr, "find '%s': channel=%s, dwSpace=%d, dwChannel=%d \n", bufd, channel, tmp_dwSpace, tmp_dwChannel);
-		*dwSpace = tmp_dwSpace;
-		*dwChannel = tmp_dwChannel;
-		return 0;
+		fprintf(stderr, "find '%s': channel=%s, dwSpace=%d, dwChannel=%d \n", bufd, channel, dwSpace, dwChannel);
+		bon_channel_table.driver = driver;
+		bon_channel_table.dwSpace = dwSpace;
+		bon_channel_table.dwChannel = dwChannel;
+		bon_channel_table.parm_channel = channel;
+		return &bon_channel_table;
 	}else {
 		fprintf(stderr, "Cannot find '%s': channel=%s\n", bufd, channel);
-		return 2;
+		return NULL;
 	}
 }
 
@@ -387,19 +366,12 @@ int
 tune(char *channel, thread_data *tdata, char *driver)
 {
 	/* get channel */
-	BON_CHANNEL_SET *table_tmp = searchrecoff(channel);
-	if(table_tmp == NULL) {
-		fprintf(stderr, "Invalid Channel: %s\n", channel);
-		return 1;
-	}
+	BON_CHANNEL_TABLE *table_tmp;
 
 	/* open tuner */
 	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
-	char *tmp_driver;
-	DWORD tmp_dwSpace;
-	DWORD tmp_dwChannel;
 	int num_devs = 0;
 	if(dri_tmp && *dri_tmp == 'P'){
 		// proxy
@@ -407,7 +379,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 		dri_tmp++;
 	}else
 		aera = 0;
-	if(dri_tmp){
+	if(dri_tmp && *dri_tmp != '\0'){
 		if(*dri_tmp == 'S'){
 			if(aera == 0){
 				tuner = bsdev;
@@ -427,6 +399,14 @@ tune(char *channel, thread_data *tdata, char *driver)
 			}
 			dri_tmp++;
 		}
+	}else{
+		if(aera == 0){
+			tuner = alldev;
+			num_devs = num_alldev;
+		}else{
+			tuner = alldev_proxy;
+			num_devs = num_alldev_proxy;
+		}
 	}
 
 	if(dri_tmp && *dri_tmp != '\0') {
@@ -434,7 +414,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 		int num = 0;
 		int code;
 
-		if(!isdigit(*dri_tmp)){
+		if(isdigit(*dri_tmp)){
 			do{
 				num = num * 10 + *dri_tmp++ - '0';
 			}while(isdigit(*dri_tmp));
@@ -448,8 +428,9 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 		/* tune to specified channel */
-		if(get_bon_channel(channel, driver, &tmp_dwSpace, &tmp_dwChannel)){
+		if((table_tmp = searchrecoff(channel, driver)) == NULL){
 			close_tuner(tdata);
+			fprintf(stderr, "Invalid Channel: %s\n", channel);
 			return 1;
 		}
 #if 0
@@ -460,7 +441,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 #endif
-		while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
+		while(tdata->pIBon2->SetChannel(table_tmp->dwSpace, table_tmp->dwChannel) == FALSE) {
 			if(tdata->tune_persistent) {
 				if(f_exit) {
 					close_tuner(tdata);
@@ -475,60 +456,31 @@ tune(char *channel, thread_data *tdata, char *driver)
 			}
 		}
 		fprintf(stderr, "driver = %s\n", driver);
-		tmp_driver = driver;
 	}
 	else {
 		/* case 2: loop around available devices */
 		boolean tuned = FALSE;
 		int lp;
-
-		if(num_devs == 0){
-			switch(table_tmp->type){
-				case CHTYPE_BonNUMBER:
-				default:
-					fprintf(stderr, "No driver name\n");
-					close_tuner(tdata);
-					return 1;
-				case CHTYPE_SATELLITE:
-					if(aera == 0){
-						tuner = bsdev;
-						num_devs = num_bsdev;
-					}else{
-						tuner = bsdev_proxy;
-						num_devs = num_bsdev_proxy;
-					}
-					break;
-				case CHTYPE_GROUND:
-					if(aera == 0){
-						tuner = isdb_t_dev;
-						num_devs = num_isdb_t_dev;
-					}else{
-						tuner = isdb_t_dev_proxy;
-						num_devs = num_isdb_t_dev_proxy;
-					}
-					break;
-			}
-		}
-
+		
 		for(lp = 0; lp < num_devs; lp++) {
 			int count = 0;
 
 			if(open_tuner(tdata, tuner[lp]) == 0) {
-				if(get_bon_channel(channel, tuner[lp], &tmp_dwSpace, &tmp_dwChannel)){
+				if((table_tmp = searchrecoff(channel, tuner[lp])) == NULL){
 					close_tuner(tdata);
 					continue;
 				}
 				// 使用中チェック・違うチャンネルを選局している場合はスキップ
 				DWORD m_dwChannel = tdata->pIBon2->GetCurChannel();
 				if(m_dwChannel != ARIB_CH_ERROR){
-					if(m_dwChannel != tmp_dwChannel){
+					if(m_dwChannel != table_tmp->dwChannel){
 						close_tuner(tdata);
 						continue;
 					}
 				}else{
 					/* tune to specified channel */
 					if(tdata->tune_persistent) {
-						while(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE && count < MAX_RETRY) {
+						while(tdata->pIBon2->SetChannel(table_tmp->dwSpace, table_tmp->dwChannel) == FALSE && count < MAX_RETRY) {
 							if(f_exit) {
 								close_tuner(tdata);
 								return 1;
@@ -544,7 +496,7 @@ tune(char *channel, thread_data *tdata, char *driver)
 						}
 					} /* tune_persistent */
 					else {
-						if(tdata->pIBon2->SetChannel(tmp_dwSpace, tmp_dwChannel) == FALSE) {
+						if(tdata->pIBon2->SetChannel(table_tmp->dwSpace, table_tmp->dwChannel) == FALSE) {
 							close_tuner(tdata);
 							continue;
 						}
@@ -553,7 +505,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 
 				tuned = TRUE;
 				fprintf(stderr, "driver = %s\n", tuner[lp]);
-				tmp_driver = tuner[lp];
 				break; /* found suitable tuner */
 			}
 		}
@@ -564,9 +515,6 @@ tune(char *channel, thread_data *tdata, char *driver)
 			return 1;
 		}
 	}
-	tdata->driver = tmp_driver;
-	tdata->dwSpace = tmp_dwSpace;
-	tdata->dwChannel = tmp_dwChannel;
 	tdata->table = table_tmp;
 	// TS受信開始待ち
 	timespec ts;

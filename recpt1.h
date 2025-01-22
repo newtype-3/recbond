@@ -2,6 +2,8 @@
 #ifndef _RECPT1_H_
 #define _RECPT1_H_
 
+#include "typedef.h"
+
 #define CHTYPE_SATELLITE    0        /* satellite digital */
 #define CHTYPE_GROUND       1        /* terrestrial digital */
 #define CHTYPE_BonNUMBER    2        // BonDriver number
@@ -29,18 +31,11 @@ typedef struct _QUEUE_T {
     BUFSZ *buffer[1];    // バッファポインタ
 } QUEUE_T;
 
-typedef struct _ISDB_T_FREQ_CONV_TABLE {
-    int set_freq;    // 実際にioctl()を行う値
-    int type;        // チャンネルタイプ
-    int add_freq;    // 追加する周波数(BS/CSの場合はスロット番号)
-    char *parm_freq;    // パラメータで受ける値
-} ISDB_T_FREQ_CONV_TABLE;
-
-typedef struct _BON_CHANNEL_SET {
-	int bon_num;     // BonDriver channel number
-    int set_freq;    // BonDriver channel number 仮値
-    int type;        // チャンネルタイプ
-    char parm_freq[16];    // パラメータで受ける値
-} BON_CHANNEL_SET;
+typedef struct _BON_CHANNEL_TABLE {
+    char *driver;    // チャンネルファイル
+    DWORD dwSpace;   // スペース指定(デフォルトは0)
+    DWORD dwChannel; // チャンネル指定(デフォルトは-1)
+    char *parm_channel; // パラメータで受ける値
+} BON_CHANNEL_TABLE;
 
 #endif

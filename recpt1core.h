@@ -58,10 +58,6 @@ typedef struct _msgbuf {
 } message_buf;
 
 typedef struct _thread_data {
-    char *driver;           // tuner チャンネルファイル 
-    DWORD dwSpace;			// tuner スペース指定(デフォルトは0)
-    DWORD dwChannel;        // tuner チャンネル指定(デフォルトは-1)
-
     void *hModule;			// tuner 動的ライブラリへの内部「ハンドル」
 	IBonDriver *pIBon;		// tuner
 	IBonDriver2 *pIBon2;	// tuner
@@ -78,7 +74,7 @@ typedef struct _thread_data {
     boolean tune_persistent; //invaliable
 
     QUEUE_T *queue; //invariable
-    BON_CHANNEL_SET *table; //invariable
+    BON_CHANNEL_TABLE *table; //invariable
     SOCK_data *sock_data; //invariable
     pthread_t signal_thread; //invariable
     DECODER *decoder; //invariable
@@ -88,6 +84,10 @@ typedef struct _thread_data {
 
 extern const char *version;
 extern boolean f_exit;
+extern char *alldev[];   // Proxyでないドライバ(衛星波+地上波)
+extern int num_alldev;
+extern char *alldev_proxy[];   // Proxyなドライバ(衛星波+地上波)
+extern int num_alldev_proxy;
 extern char *bsdev[];			// 衛星波
 extern int num_bsdev;
 extern char *bsdev_proxy[];		// 衛星波Proxy
@@ -101,10 +101,9 @@ extern int num_isdb_t_dev_proxy;
 int tune(char *channel, thread_data *tdata, char *device);
 int close_tuner(thread_data *tdata);
 void show_channels(void);
-BON_CHANNEL_SET *searchrecoff(char *channel);
+BON_CHANNEL_TABLE *searchrecoff(char *channel, char *driver);
 void calc_cn(thread_data *tdata, boolean use_bell);
 int parse_time(const char * rectimestr, int *recsec);
 void do_bell(int bell);
-int get_bon_channel(char *channel, char *driver, DWORD *dwSpace, DWORD *dwChannel);
 
 #endif
