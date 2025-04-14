@@ -129,7 +129,6 @@ main(int argc, char **argv)
 	};
 
 	tdata.hModule = NULL;
-	tdata.dwSpace = 0;
 	tdata.table = NULL;
 	tdata.lnb = 0;
 	char *driver = NULL;
