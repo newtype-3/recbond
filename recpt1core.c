@@ -367,9 +367,22 @@ tune(char *channel, thread_data *tdata, char *driver)
 {
 	/* get channel */
 	BON_CHANNEL_TABLE *table_tmp;
+	char *dri_tmp = driver;
+	char buf[255];
+	int tmpi;
+
+	/* get driver from channel */
+	if(sscanf(channel, "P%[ST]%d_", buf, &tmpi) == 2
+	|| sscanf(channel, "%[ST]%d_", buf, &tmpi) == 2
+	|| sscanf(channel, "P%[ST]_", buf) == 1
+	|| sscanf(channel, "%[ST]_", buf) == 1
+	){
+		for(dri_tmp = channel; *channel != '_'; channel++){
+		}
+		*channel++ = '\0';
+	}
 
 	/* open tuner */
-	char *dri_tmp = driver;
 	int aera;
 	char **tuner;
 	int num_devs = 0;
