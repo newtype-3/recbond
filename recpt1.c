@@ -71,7 +71,6 @@ void read_line(int socket, char *p){
 void *
 mq_recv(void *t)
 {
-	BON_CHANNEL_TABLE btable;
 	BON_CHANNEL_TABLE *table = NULL;
 	thread_data *tdata = (thread_data *)t;
 	message_buf rbuf;
