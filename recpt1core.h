@@ -105,5 +105,6 @@ BON_CHANNEL_TABLE *searchrecoff(char *channel, char *driver);
 void calc_cn(thread_data *tdata, boolean use_bell);
 int parse_time(const char * rectimestr, int *recsec);
 void do_bell(int bell);
+int set_driver_list(void);
 
 #endif

@@ -25,6 +25,94 @@ char *isdb_t_dev_proxy[MAX_DRIVER];	// 地上波Proxy
 int num_isdb_t_dev_proxy;
 BON_CHANNEL_TABLE bon_channel_table = {NULL, 0, 0, NULL};
 
+int
+set_driver_list(void)
+{
+	FILE *fp;
+	char *p, buf[256];
+	ssize_t len;
+
+	if ((len = readlink("/proc/self/exe", buf, sizeof(buf) - 8)) == -1)
+		return 2;
+	buf[len] = '\0';
+	strcat(buf, ".conf");
+
+	fp = fopen(buf, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Cannot open '%s'\n", buf);
+		return 1;
+	}
+
+	int i = 0;
+	int ia = 0;
+	int iap = 0;
+	int ib = 0;
+	int ibp = 0;
+	int it = 0;
+	int itp = 0;
+	while (fgets(buf, sizeof(buf), fp) && i < MAX_DRIVER - 1) {
+		if (buf[0] == ';')
+			continue;
+		p = buf + strlen(buf) - 1;
+		while ((p >= buf) && (*p == '\r' || *p == '\n'))
+			*p-- = '\0';
+		if (p < buf)
+			continue;
+
+		int n = 0;
+		char *cp[3];
+		p = cp[n++] = buf;
+		while ((p = strchr(p, '\t'))) {
+			*p++ = '\0';
+			cp[n++] = p;
+			if (n > 2) {
+				break;
+			}
+		}
+		if (n > 1) {
+			switch(cp[0][0]) {
+			case 'S':
+				if (cp[0][1] == 'P') {
+					bsdev_proxy[ibp] = strdup(cp[1]);
+					alldev_proxy[iap] = bsdev_proxy[ibp];
+					iap++;
+					ibp++;
+				} else {
+					bsdev[ib] = strdup(cp[1]);
+					alldev[ia] = bsdev[ib];
+					ia++;
+					ib++;
+				}
+				break;
+			case 'T':
+				if (cp[0][1] == 'P') {
+					isdb_t_dev_proxy[itp] = strdup(cp[1]);
+					alldev_proxy[iap] = isdb_t_dev_proxy[itp];
+					iap++;
+					itp++;
+				} else {
+					isdb_t_dev[it] = strdup(cp[1]);
+					alldev[ia] = isdb_t_dev[it];
+					ia++;
+					it++;
+				}
+				break;
+			}
+			i++;
+		}
+	}
+
+	fclose(fp);
+	num_alldev = ia;
+	num_alldev_proxy = iap;
+	num_bsdev = ib;
+	num_bsdev_proxy = ibp;
+	num_isdb_t_dev = it;
+	num_isdb_t_dev_proxy = itp;
+
+	return 0;
+}
+
 /* lookup frequency conversion table*/
 BON_CHANNEL_TABLE *
 searchrecoff(char *channel, char *driver)
