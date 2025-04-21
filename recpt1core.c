@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <ctype.h>
 #include <dlfcn.h>
 #include "typedef.h"
@@ -150,6 +151,16 @@ searchrecoff(char *channel, char *driver)
 		}
 		strcpy(bufd, "[direct]");
 	} else {
+		unsigned long tsid = 0;
+		if (strncasecmp(channel, "tsid", 4) == 0) {
+			char* strtsid = channel + 4;
+			char* endp;
+			tsid = strtoul(strtsid, &endp, 0);
+			if (*endp != '\0') {
+				tsid = 0;
+			}
+		}
+
 		strncpy(bufd, driver, sizeof(bufd) - 8);
 		bufd[sizeof(bufd) - 8] = '\0';
 		strcat(bufd, ".ch");
@@ -170,21 +181,30 @@ searchrecoff(char *channel, char *driver)
 				continue;
 
 			int n = 0;
-			char *cp[4];
+			char *cp[6];
 			p = cp[n++] = bufl;
 			while ((p = strchr(p, '\t'))) {
 				*p++ = '\0';
 				cp[n++] = p;
-				if (n > 3) {
+				if (n > 6) {
 					break;
 				}
 			}
 			if (n > 2) {
-				if (strcmp(channel, cp[0]) == 0) {
-					dwSpace = (DWORD)strtol(cp[1], NULL, 10);
-					dwChannel = (DWORD)strtol(cp[2], NULL, 10);
-					find = TRUE;
-					break;
+				if (tsid == 0) {
+					if (strcmp(channel, cp[0]) == 0) {
+						dwSpace = (DWORD)strtol(cp[1], NULL, 10);
+						dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+						find = TRUE;
+						break;
+					}
+				} else if (n > 4) {
+					if (strtoul(cp[4], NULL, 0) == tsid) {
+						dwSpace = (DWORD)strtol(cp[1], NULL, 10);
+						dwChannel = (DWORD)strtol(cp[2], NULL, 10);
+						find = TRUE;
+						break;
+					}
 				}
 			}
 		}
@@ -456,14 +476,13 @@ tune(char *channel, thread_data *tdata, char *driver)
 	/* get channel */
 	BON_CHANNEL_TABLE *table_tmp;
 	char *dri_tmp = driver;
-	char buf[255];
-	int tmpi;
+	char tmpc;
 
 	/* get driver from channel */
-	if(sscanf(channel, "P%[ST]%d_", buf, &tmpi) == 2
-	|| sscanf(channel, "%[ST]%d_", buf, &tmpi) == 2
-	|| sscanf(channel, "P%[ST]_", buf) == 1
-	|| sscanf(channel, "%[ST]_", buf) == 1
+	if(sscanf(channel, "P%*1[ST]%*d%1[_]", &tmpc) == 1
+	|| sscanf(channel, "%*1[ST]%*d%1[_]", &tmpc) == 1
+	|| sscanf(channel, "P%*1[ST]%1[_]", &tmpc) == 1
+	|| sscanf(channel, "%*1[ST]%1[_]", &tmpc) == 1
 	){
 		for(dri_tmp = channel; *channel != '_'; channel++){
 		}

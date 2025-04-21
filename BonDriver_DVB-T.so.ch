@@ -1,4 +1,4 @@
-; チャンネル, BonDriverのチューナ空間空間, BonDriverのチャンネル
+; チャンネル, BonDriverのチューナ空間空間, BonDriverのチャンネル, 周波数テーブル番号(オプション:未使用), TSID(オプション)
 ; 記述はタブ区切り
 ;Terrestrial
 1	0	0
