@@ -619,6 +619,24 @@ init_signal_handlers(pthread_t *signal_thread, thread_data *tdata)
 	pthread_create(signal_thread, NULL, process_signals, tdata);
 }
 
+void
+deinit_signal_handlers(pthread_t signal_thread)
+{
+	sigset_t blockset;
+
+	sigemptyset(&blockset);
+	sigaddset(&blockset, SIGPIPE);
+	sigaddset(&blockset, SIGINT);
+	sigaddset(&blockset, SIGTERM);
+	sigaddset(&blockset, SIGUSR1);
+	sigaddset(&blockset, SIGUSR2);
+
+	if(pthread_sigmask(SIG_UNBLOCK, &blockset, NULL))
+		fprintf(stderr, "pthread_sigmask() failed.\n");
+
+	pthread_join(signal_thread, NULL);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1119,7 +1137,7 @@ main(int argc, char **argv)
 
 		/* wait for threads */
 		pthread_join(reader_thread, NULL);
-		pthread_join(signal_thread, NULL);
+		deinit_signal_handlers(signal_thread);
 		pthread_join(ipc_thread, NULL);
 
 		/* release queue */
